@@ -1,0 +1,90 @@
+#ワードクラウド　日本語　Python　JupyterLab　でやってみる。
+
+#参考にさせて頂いた主なHP　 
+# https://github.com/amueller/word_cloud/blob/master/examples/masked.py
+# https://note.nkmk.me/python-janome-tutorial/
+# https://quest.signate.jp/quests/10031　「データ前処理道場」
+
+from os import path
+from PIL import Image
+import numpy as np
+import matplotlib.pyplot as plt
+import os
+from wordcloud import WordCloud, STOPWORDS
+
+
+#置き換えを使うため、「re」をインストール
+import re
+
+# get data directory (using getcwd() is needed to support running example in generated IPython notebook)
+d = path.dirname(__file__) if "__file__" in locals() else os.getcwd()
+
+
+#----
+#　pipのみで導入可能であるため、「janome」を使用　文字列から名詞のみを抜き出すために使用
+from janome.tokenizer import Tokenizer
+
+text_wakati = open(path.join(d, 'chumonno_oi_ryoriten.txt'), encoding='shift_jis').read()
+t = Tokenizer()
+
+s = text_wakati
+
+print(type(t.tokenize(s)))
+
+text_wakati=[token.surface for token in t.tokenize(s)
+       if token.part_of_speech.startswith('名詞')]
+
+text_wakati ="　".join(map(str, text_wakati))
+
+#　「字下げる」という文言が、名詞として認識されている。頻出文字として認識されてしまうため、除外する。
+text_wakati = re.sub("字", ' ', text_wakati)
+text_wakati = re.sub("下げ", ' ', text_wakati)
+text_wakati = re.sub("ここ", ' ', text_wakati)
+
+#生成された文字列の確認のため記載。最終、コメントにして影響を無くす。
+#print(text_wakati)
+
+# read the mask image
+# taken from
+alice_mask = np.array(Image.open(path.join(d, "alice_mask.png")))
+
+stopwords = set(STOPWORDS)
+stopwords.add("said")
+font_patha_a = 'gomarice_mukasi_mukasi.ttf'
+
+
+# 日本語が表示出来るフォントが使用できないと、□□□□という表記になる。
+#今回、dockerでインストールしたPythonを使用しているため、フォントをフォルダに入れるのが手間であったので同一階層にフォントファイルを配置する。
+#「font_path=font_patha_a」を追加。
+wc = WordCloud(background_color="white", max_words=2000, mask=alice_mask,
+               stopwords=stopwords, contour_width=3, contour_color='steelblue',font_path=font_patha_a)
+
+# generate word cloud
+wc.generate(text_wakati)
+
+# store to file
+wc.to_file(path.join(d, "alice.png"))
+
+# show
+plt.imshow(wc, interpolation='bilinear')
+plt.axis("off")
+plt.figure()
+plt.imshow(alice_mask, cmap=plt.cm.gray, interpolation='bilinear')
+plt.axis("off")
+plt.show()
+
+
+
+#事前準備
+#同一階層に、「テキストファイル」「イメージファイル」「フォントファイル」を用意
+
+#サンプルとの主な変更点
+#テキストファイル　：　「青空文庫」より、注文の多い料理店　のデータを使用　保存名「chumonno_oi_ryoriten.txt」同一階層に配置。
+#import re　：　文字列の入れかを行うために使用
+#文字の分類　：pipのみで導入可能であるため、「janome」を使用　文字列から名詞のみを抜き出すために使用
+
+#＜フォント＞　（dockerが原因だと思っていたので、日本語対応の記事ばかりみていた・・・結果は、フォントが原因で□□□になっていたようです。）(gomarice_mukasi_mukasi.ttf　はフリーフォントを用意。)
+
+# 日本語が表示出来るフォントが使用できないと、□□□□という表記になる。
+#今回、dockerでインストールしたPythonを使用しているため、フォントをフォルダに入れるのが手間であったので同一階層にフォントファイルを配置する。
+#「font_path=font_patha_a」を追加。
